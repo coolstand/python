@@ -9,15 +9,27 @@ monkey.patch_all()
 import os
 import sys 
 import traceback
+import urllib2
 
 reload(sys)
 sys.setdefaultencoding("utf8")
 
+def Request(num):
+    conn = urllib2.urlopen("http://www.baidu.com")
+    if not conn:
+        print "Request failed"
+    else:
+        print num,conn.code
+
+    if conn:
+        conn.close()
+
 def Process(inq):
     while True:
-        num = int(inq.get())  #get为阻塞操作，除非有数能取到，否则一直阻塞
+        num = int(inq.get())  #2. get为阻塞操作，除非有数能取到，否则一直阻塞
         print num
-        print gevent.getcurrent()
+        print gevent.getcurrent()  #4. 此处可以看到后面IO操作每次都切换到了新的协程上进行请求
+        Request(num)
 
 def Producer(inq):
     for num in range(20):
@@ -26,9 +38,9 @@ def Producer(inq):
 def Main():
     inq = gevent.queue.Queue()
     for i in xrange(20):
-        ob = gevent.spawn(Process, inq) #实际创建20个协程，由于队列没有数据，都阻塞在get处
+        ob = gevent.spawn(Process, inq) #1. 实际创建20个协程，由于队列没有数据，都阻塞在get处
         print ob
-    gevent.spawn(Producer, inq)  #队列中加入数据后，上面阻塞的get操作可以继续执行了
+    gevent.spawn(Producer, inq)  #3. 队列中加入数据后，上面阻塞的get操作可以继续执行了
     gevent.wait() #等待直到所有协程处理完成
     
 if __name__ == '__main__':
