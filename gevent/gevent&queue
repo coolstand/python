@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+#-*-coding:UTF-8-*-
+
+import gevent
+from gevent import monkey
+import gevent.queue
+monkey.patch_all()
+
+import os
+import sys 
+import traceback
+
+reload(sys)
+sys.setdefaultencoding("utf8")
+
+def Process(inq):
+    while True:
+        num = int(inq.get())  #get为阻塞操作，除非有数能取到，否则一直阻塞
+        print num
+        print gevent.getcurrent()
+
+def Producer(inq):
+    for num in range(20):
+        inq.put(num)
+
+def Main():
+    inq = gevent.queue.Queue()
+    for i in xrange(20):
+        ob = gevent.spawn(Process, inq) #实际创建20个协程，由于队列没有数据，都阻塞在get处
+        print ob
+    gevent.spawn(Producer, inq)  #队列中加入数据后，上面阻塞的get操作可以继续执行了
+    gevent.wait() #等待直到所有协程处理完成
+    
+if __name__ == '__main__':
+    Main()
+   
